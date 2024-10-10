@@ -4,7 +4,9 @@
 
 
 
-
+/*
+ * 
+*/
 void _hashset_update_capacity(Hashset* h, unsigned new_capacity) {
 
     unsigned capacity_old = h -> capacity;
@@ -77,6 +79,9 @@ void _hashset_update_capacity(Hashset* h, unsigned new_capacity) {
 }
 
 
+/*
+ * 
+*/
 Hashset* hashset_init(
     unsigned (*given_get_hashcode)(void*),
     void (*given_datapoint_destroyer)(void*),
@@ -106,6 +111,9 @@ Hashset* hashset_init(
 }
 
 
+/*
+ * 
+*/
 void hashset_destroy(Hashset* h) {
 
     for (int i = 0; i < h -> capacity; ++i)
@@ -151,26 +159,42 @@ Hashset* hashset_copy(Hashset* h) {
 }
 
 
+/**
+ * @brief Returns number of elements inside the hashtable
+*/
 unsigned hashset_get_size(Hashset* h) {
 
     return h -> size;
 }
 
 
+/**
+ * @brief Returns whether the hashtable is empty (without elements) or not
+ * @return int 1 if hashtable is empty, int 1 if it's not
+*/
 int hashset_is_empty(Hashset* h) {
 
     return !(h -> size);
 }
 
 
-void hashset_insert(Hashset* h, void* element) {
+/**
+ * @brief Performs the insert operation to the hashtable
+ * 
+ * @param h Pointer to the hashset
+ * @param element The element to be inserted
+ * @return int 1 if element is inserted, int 0 if element is already inside
+*/
+int hashset_insert(Hashset* h, void* element) {
 
     unsigned hashcode = h -> get_hashcode(element);
 
     unsigned pos = hashcode % (h -> capacity);
 
+    // this is used in case a collision happends and when while searching if element is inside after the first collision position an empty array position is passed which is marked with a dirty bit, later this position will be used for the insertion of the new element
     unsigned first_empty_dirty_bit_pos = h -> capacity;
 
+    // if a collision has happened, meaning the hashed value of element lands in a position where another element is stored dirty bits might need to be updated
     short flag_collision_happened = 0;
 
     while (1)
@@ -179,26 +203,21 @@ void hashset_insert(Hashset* h, void* element) {
         {
             if (h -> datapoint_equal(h -> data[pos], element))
             {
-                return;  // element already inside hashset
+                return 0;  // element already inside hashset
             }
-            flag_collision_happened = 1;
+            h -> dirty_bits[pos] = 1; // set dirty bit on this position, TODO : explain why it needs to be set
         }
         else
         {
             if (!(h -> dirty_bits[pos]))
             {
+                // if an empty position has been found with a dirty bit set in the previous positions of the table while incrementally searching for the element, then insertion will occur on that position
                 if (first_empty_dirty_bit_pos != h -> capacity)
                 {
                     pos = first_empty_dirty_bit_pos;
                 }
 
                 h -> data[pos] = h -> datapoint_copy(element);
-
-                if (flag_collision_happened)
-                {
-                    h -> dirty_bits[pos ? pos - 1 : h -> capacity - 1] = 1;
-                }
-
                 h -> size += 1;
 
                 if (h -> size == h -> capacity / 2U)
@@ -206,7 +225,7 @@ void hashset_insert(Hashset* h, void* element) {
                     _hashset_update_capacity(h, (h -> capacity) * 2U);
                 }
 
-                return;
+                return 1;
             }
             else
             {
@@ -222,6 +241,12 @@ void hashset_insert(Hashset* h, void* element) {
 }
 
 
+/**
+ * @brief Performs the remove operation
+ * 
+ * @param h Pointer to the hashset
+ * @param element the element that will be deleted
+*/
 void hashset_remove(Hashset* h, void* element) {
 
     unsigned hashcode = h -> get_hashcode(element);
@@ -260,6 +285,13 @@ void hashset_remove(Hashset* h, void* element) {
 }
 
 
+/**
+ * @brief Checks whether an element is inside the hashset
+ * 
+ * @param h Pointer to the hashset
+ * @param element The element that is checked whether it's inside hashset
+ * @return int 1 on success, 0 on failure
+*/
 int hashset_find(Hashset* h, void* element) {
 
     unsigned hashcode = h -> get_hashcode(element);
