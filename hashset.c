@@ -4,8 +4,11 @@
 
 
 
-/*
+/**
+ * @brief Changes hashtable's underlying array capacity to new_capacity, used when underlying array needs to increase or shrink
  * 
+ * @param h Pointer to the hashset
+ * @param new_capacity the new size of the underlying array
 */
 void _hashset_update_capacity(Hashset* h, unsigned new_capacity) {
 
@@ -79,8 +82,14 @@ void _hashset_update_capacity(Hashset* h, unsigned new_capacity) {
 }
 
 
-/*
+/**
+ * @brief Constructor for the hashset struct, takes as arguments the callbacks that perform the basic operations of the hashset's datatype, namely calculate hash, destroy, copy and check for equality
  * 
+ * @param given_get_hashcode Callback that must calculate the hash for an element of the hashtable's datatype
+ * @param given_datapoint_destroyer Callback that must destroy the element of the datatype, that is free the memory the datatype holds (the argument of this function as well as the the elements stored in the hashtable's array will be pointers to that datatype)
+ * @param given_datapoint_copy Callbak that copies the value of an element of the hashtable's datatype, copied value will have new allocated memory and a Pointer to the allocated memory is returned
+ * @param given_datapoint_equal Callback that checks for equality between 2 elements of the hashtable's datatype
+ * @return Pointer to the newly created Hashset struct
 */
 Hashset* hashset_init(
     unsigned (*given_get_hashcode)(void*),
@@ -111,8 +120,8 @@ Hashset* hashset_init(
 }
 
 
-/*
- * 
+/**
+ * @brief Destructed for the provided Hashset struct, frees all memory that the struct object holds
 */
 void hashset_destroy(Hashset* h) {
 
@@ -130,6 +139,11 @@ void hashset_destroy(Hashset* h) {
 }
 
 
+/**
+ * @brief Creates a new Hashset struct object that is a deep copy (meaning that new memory will be allocated for every element of the hashset's datatype that is stored inside the hashset) of the argument struct object
+ * @param h Pointer to Hashset struct object a copy of which will be made
+ * @return Pointer to newly created Hashset struct object
+ */
 Hashset* hashset_copy(Hashset* h) {
 
     Hashset* h_copy = (Hashset*) malloc(sizeof(Hashset));
