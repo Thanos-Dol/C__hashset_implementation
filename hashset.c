@@ -275,15 +275,23 @@ void hashset_remove(Hashset* h, void* element) {
             {
                 h -> datapoint_destroyer(h -> data[pos]);
                 h -> data[pos] = NULL;
-                if (!(h -> dirty_bits[pos]) && h -> dirty_bits[pos ? pos - 1 : h -> capacity - 1])
+
+                while (!(h -> data[pos]) && !(h -> dirty_bits[pos]) && (h -> dirty_bits[pos ? pos - 1 : h -> capacity - 1]))
                 {
                     h -> dirty_bits[pos ? pos - 1 : h -> capacity - 1] = 0;
+                    pos = pos ? pos - 1 : h -> capacity - 1;
                 }
+
                 h -> size -= 1;
+
                 if ((h -> size < (h -> capacity / 5U)) && (h -> capacity > DEFAULT_INITIAL_HASHSET_CAPACITY))
                 {
                     _hashset_update_capacity(h, (h -> capacity) / 2U);
                 }
+            }
+            if (!(h -> dirty_bits[pos]))
+            {
+                return;
             }
         }
         else
@@ -319,6 +327,10 @@ int hashset_find(Hashset* h, void* element) {
             if (h -> datapoint_equal(h -> data[pos], element))
             {
                 return 1;
+            }
+            if (!(h -> dirty_bits[pos]))
+            {
+                return 0;
             }
         }
         else
