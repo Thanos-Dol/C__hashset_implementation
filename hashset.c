@@ -3,7 +3,7 @@
 #include "hashset.h"
 
 
-
+// TODO : this function needs checking
 /**
  * @brief Changes hashtable's underlying array capacity to new_capacity, used when underlying array needs to increase or shrink
  * 
@@ -312,7 +312,7 @@ void hashset_remove(Hashset* h, void* element) {
  * 
  * @param h Pointer to the hashset
  * @param element The element that is checked whether it's inside hashset
- * @return int 1 on success, 0 on failure
+ * @return void* a COPY of the element if it is indeed found in the hashset, NULL if not found
 */
 int hashset_find(Hashset* h, void* element) {
 
