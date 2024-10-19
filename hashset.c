@@ -32,12 +32,9 @@ void _hashset_update_capacity(Hashset* h, unsigned new_capacity) {
             {
                 if (data_new[pos])
                 {
-                    //* this is a redundant check, always false
-                    if (h -> datapoint_equal(data_new[pos], h -> data[i]))
-                    {
-                        ;  // element already inside hashset
-                    }
-                    flag_collision_happened = 1;
+                    //* the check below is a redundant check, always false
+                    if (h -> datapoint_equal(data_new[pos], h -> data[i])){}
+                    dirty_bits_new[pos] = 1;
                 }
                 else
                 {
@@ -49,11 +46,6 @@ void _hashset_update_capacity(Hashset* h, unsigned new_capacity) {
                         }
 
                         data_new[pos] = h -> data[i];
-
-                        if (flag_collision_happened)
-                        {
-                            dirty_bits_new[pos ? pos - 1 : new_capacity - 1] = 1;
-                        }
 
                         break;
                     }
@@ -85,6 +77,8 @@ void _hashset_update_capacity(Hashset* h, unsigned new_capacity) {
 /**
  * @brief Constructor for the hashset struct, takes as arguments the callbacks that perform the basic operations of the hashset's datatype, namely calculate hash, destroy, copy and check for equality
  * 
+ * @param given_minimum_capacity the minimum allowed capacity that the hashset can have (also the starting capacity of the hashset)
+ * @param given_minimum_percentage_allowed the minimum allowed percentage of hashset underlying array's fullness before shrinking occurs
  * @param given_get_hashcode Callback that must calculate the hash for an element of the hashtable's datatype
  * @param given_datapoint_destroyer Callback that must destroy the element of the datatype, that is free the memory the datatype holds (the argument of this function as well as the the elements stored in the hashtable's array will be pointers to that datatype)
  * @param given_datapoint_copy Callbak that copies the value of an element of the hashtable's datatype, copied value will have new allocated memory and a Pointer to the allocated memory is returned
@@ -92,18 +86,43 @@ void _hashset_update_capacity(Hashset* h, unsigned new_capacity) {
  * @return Pointer to the newly created Hashset struct
 */
 Hashset* hashset_init(
+    unsigned given_minimum_capacity,
+    double given_minimum_percentage_allowed,
+    // callbacks
     unsigned (*given_get_hashcode)(void*),
     void (*given_datapoint_destroyer)(void*),
     void* (*given_datapoint_copy)(void*),
     int (*given_datapoint_equal)(void*, void*)
-    ) {
-
+)
+{
     Hashset* tmp = (Hashset*) malloc(sizeof(Hashset));
 
-    tmp -> data = (void**) calloc(DEFAULT_INITIAL_HASHSET_CAPACITY, sizeof(void*));
-    tmp -> dirty_bits = (short*) calloc(DEFAULT_INITIAL_HASHSET_CAPACITY, sizeof(short));
     tmp -> size = 0;
-    tmp -> capacity = DEFAULT_INITIAL_HASHSET_CAPACITY;
+
+    // check if minimum capacity given is valid, it should at least be a size of 10, if it is invalied a default minimum capacity will be used
+    if (given_minimum_capacity < 10)
+    {
+        tmp -> minimum_capacity = DEFAULT_INITIAL_HASHSET_CAPACITY;
+    }
+    else
+    {
+        tmp -> minimum_capacity = given_minimum_capacity;
+    }
+
+    // check if given minimum percentage allowed is not within rational values, in such case provide a default
+    if (given_minimum_percentage_allowed < 0.11 || given_minimum_percentage_allowed > 0.23)
+    {
+        tmp -> minimum_percentage_allowed = DEFAULT_MINIMUM_PERCENTAGE_ALLOWED;
+    }
+    else
+    {
+        tmp -> minimum_percentage_allowed = given_minimum_percentage_allowed;
+    }
+
+    tmp -> capacity = tmp -> minimum_capacity;
+
+    tmp -> data = (void**) calloc(tmp -> capacity, sizeof(void*));
+    tmp -> dirty_bits = (short*) calloc(tmp -> capacity, sizeof(short));
 
     for (int i = 0; i < tmp -> capacity; ++i)
     {
@@ -151,6 +170,8 @@ Hashset* hashset_copy(Hashset* h) {
     h_copy -> data = (void**) calloc(h -> capacity, sizeof(void*));
     h_copy -> size = h -> size;
     h_copy -> capacity = h -> capacity;
+    h_copy -> minimum_capacity = h -> minimum_capacity;
+    h_copy -> minimum_percentage_allowed = h -> minimum_percentage_allowed;
     h_copy -> get_hashcode = h -> get_hashcode;
     h_copy -> datapoint_destroyer = h -> datapoint_destroyer;
     h_copy -> datapoint_copy = h -> datapoint_copy;
@@ -284,7 +305,7 @@ void hashset_remove(Hashset* h, void* element) {
 
                 h -> size -= 1;
 
-                if ((h -> size < (h -> capacity / 5U)) && (h -> capacity > DEFAULT_INITIAL_HASHSET_CAPACITY))
+                if ((h -> size < ((unsigned)(h -> minimum_percentage_allowed * h -> capacity))) && (h -> capacity > h -> minimum_capacity))
                 {
                     _hashset_update_capacity(h, (h -> capacity) / 2U);
                 }

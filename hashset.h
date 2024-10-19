@@ -6,6 +6,7 @@
 
 
 #define DEFAULT_INITIAL_HASHSET_CAPACITY 100
+#define DEFAULT_MINIMUM_PERCENTAGE_ALLOWED 0.2
 
 
 typedef struct {
@@ -14,6 +15,8 @@ typedef struct {
     short* dirty_bits;
     unsigned size;
     unsigned capacity;
+    unsigned minimum_capacity;
+    double minimum_percentage_allowed;
 
     unsigned (*get_hashcode)(void*);
     void (*datapoint_destroyer)(void*);
@@ -26,6 +29,8 @@ typedef struct {
 /**
  * @brief Constructor for the hashset struct, takes as arguments the callbacks that perform the basic operations of the hashset's datatype, namely calculate hash, destroy, copy and check for equality
  * 
+ * @param given_minimum_capacity the minimum allowed capacity that the hashset can have (also the starting capacity of the hashset)
+ * @param given_minimum_percentage_allowed the minimum allowed percentage of hashset underlying array's fullness before shrinking occurs
  * @param given_get_hashcode Callback that must calculate the hash for an element of the hashtable's datatype
  * @param given_datapoint_destroyer Callback that must destroy the element of the datatype, that is free the memory the datatype holds (the argument of this function as well as the the elements stored in the hashtable's array will be pointers to that datatype)
  * @param given_datapoint_copy Callbak that copies the value of an element of the hashtable's datatype, copied value will have new allocated memory and a Pointer to the allocated memory is returned
@@ -33,6 +38,9 @@ typedef struct {
  * @return Pointer to the newly created Hashset struct
 */
 Hashset* hashset_init(
+    unsigned minimum_capacity,
+    double minimum_percentage_allowed,
+    // callbacks
     unsigned (*given_get_hashcode)(void*),
     void (*given_datapoint_destroyer)(void*),
     void* (*given_datapoint_copy)(void*),
@@ -69,7 +77,7 @@ int hashset_is_empty(Hashset* h);
  * @param element The element to be inserted
  * @return int 1 if element is inserted, int 0 if element is already inside
 */
-void hashset_insert(Hashset* h, void* element);
+int hashset_insert(Hashset* h, void* element);
 
 /**
  * @brief Performs the remove operation
